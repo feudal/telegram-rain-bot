@@ -1,12 +1,14 @@
 const TelegramBot = require("node-telegram-bot-api");
 const axios = require("axios");
 const cron = require("node-cron");
-
-const LOCATION = "Chisinau,md";
-const notificationsEnabled = new Set();
-
 const express = require("express");
 const app = express();
+const fs = require("fs");
+require("dotenv").config();
+
+const LOCATION = "Chisinau,md";
+// Load the saved notifications
+const notificationsEnabled = new Set(readNotifications().enabledChatIds || []);
 
 app.get("/", (req, res) => {
   res.send("Bot is running!");
@@ -23,6 +25,24 @@ const commands = [
   { command: "/weather", description: "Get current weather" },
   { command: "/weather_tomorrow", description: "Get weather tomorrow" },
 ];
+
+function readNotifications() {
+  try {
+    const data = fs.readFileSync("notifications.json", "utf8");
+    return JSON.parse(data);
+  } catch (error) {
+    console.error("Error reading notifications file:", error);
+    return {};
+  }
+}
+
+function writeNotifications(notifications) {
+  try {
+    fs.writeFileSync("notifications.json", JSON.stringify(notifications));
+  } catch (error) {
+    console.error("Error writing notifications file:", error);
+  }
+}
 
 async function getWeatherData() {
   const url = `https://api.openweathermap.org/data/2.5/forecast?q=${LOCATION}&appid=${process.env.OPENWEATHERMAP_API_KEY}`;
@@ -58,10 +78,12 @@ bot.on("message", async (msg) => {
       break;
     case "/notify":
       notificationsEnabled.add(chatId);
+      writeNotifications({ enabledChatIds: Array.from(notificationsEnabled) });
       bot.sendMessage(chatId, "Notifications enabled.");
       break;
     case "/notify_off":
       notificationsEnabled.delete(chatId);
+      writeNotifications({ enabledChatIds: Array.from(notificationsEnabled) });
       bot.sendMessage(chatId, "Notifications disabled.");
       break;
     case "/weather":
