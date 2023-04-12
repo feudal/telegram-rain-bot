@@ -78,23 +78,23 @@ bot.on("message", async (msg) => {
   const chatId = msg.chat.id;
   const weatherData = await getWeatherData();
   const notifications = await readNotifications();
-
   switch (msg.text) {
     case "/start":
       bot.sendMessage(chatId, "Welcome to NotificationRainBot");
       break;
     case "/notify":
+      bot.sendMessage(chatId, "Enabling notifications...");
       notifications.enabledChatIds = notifications.enabledChatIds || [];
       notifications.enabledChatIds.push(chatId);
       await writeNotifications(notifications);
       bot.sendMessage(chatId, "Notifications enabled.");
       break;
     case "/notify_off":
+      bot.sendMessage(chatId, "Disabling notifications...");
       notifications.enabledChatIds = notifications.enabledChatIds || [];
-      const index = notifications.enabledChatIds.indexOf(chatId);
-      if (index > -1) {
-        notifications.enabledChatIds.splice(index, 1);
-      }
+      notifications.enabledChatIds = notifications.enabledChatIds.filter(
+        (id) => id !== chatId
+      );
       await writeNotifications(notifications);
       bot.sendMessage(chatId, "Notifications disabled.");
       break;
