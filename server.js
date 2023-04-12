@@ -1,7 +1,8 @@
 const TelegramBot = require("node-telegram-bot-api");
-const axios = require("axios");
-const cron = require("node-cron");
+const moment = require("moment-timezone");
 const express = require("express");
+const cron = require("node-cron");
+const axios = require("axios");
 const app = express();
 const fs = require("fs");
 require("dotenv").config();
@@ -110,30 +111,40 @@ bot.on("message", async (msg) => {
 });
 
 // Send notifications
-cron.schedule("0 8 * * *", async () => {
-  const weatherData = await getWeatherData();
-  const rainAt6PM = checkRainAt(18)(weatherData);
-  if (rainAt6PM) {
-    for (const chatId of notificationsEnabled) {
-      bot.sendMessage(
-        chatId,
-        "It will rain at 6 PM. Don't forget to take an umbrella!"
-      );
+cron.schedule(
+  "0 8 * * *",
+  async () => {
+    const weatherData = await getWeatherData();
+    const rainAt6PM = checkRainAt(18)(weatherData);
+    if (rainAt6PM) {
+      for (const chatId of notificationsEnabled) {
+        bot.sendMessage(
+          chatId,
+          "It will rain at 6 PM. Don't forget to take an umbrella!"
+        );
+      }
     }
-  }
-});
+  },
+  { timezone: "Europe/Chisinau" }
+);
 
-cron.schedule("0 12 * * *", async () => {
-  const weatherData = await getWeatherData();
-  const tomorrowRain = checkRainAt(new Date().getHours() + 24)(weatherData);
-  if (tomorrowRain) {
-    console.log("Sending tomorrow rain notification");
-    const rainIntensity = tomorrowRain.rain["3h"];
-    for (const chatId of notificationsEnabled) {
-      bot.sendMessage(
-        chatId,
-        `It will rain tomorrow with an intensity of ${rainIntensity} mm.`
-      );
+cron.schedule(
+  "0 12 * * *",
+  async () => {
+    const weatherData = await getWeatherData();
+    const tomorrowRain = checkRainAt(
+      moment().tz("Europe/Chisinau").hour() + 24
+    )(weatherData);
+    if (tomorrowRain) {
+      console.log("Sending tomorrow rain notification");
+      const rainIntensity = tomorrowRain.rain["3h"];
+      for (const chatId of notificationsEnabled) {
+        bot.sendMessage(
+          chatId,
+          `It will rain tomorrow with an intensity of ${rainIntensity} mm.`
+        );
+      }
     }
-  }
-});
+  },
+  { timezone: "Europe/Chisinau" }
+);
