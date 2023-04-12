@@ -7,10 +7,8 @@ const app = express();
 require("dotenv").config();
 const { Storage } = require("@google-cloud/storage");
 
-const storage = new Storage({
-  projectId: process.env.GOOGLE_CLOUD_PROJECT_ID,
-  keyFilename: "./google-cloud-key.json",
-});
+const storage = new Storage();
+
 const bucket = storage.bucket(process.env.GOOGLE_CLOUD_STORAGE_BUCKET);
 const notificationsFile = bucket.file("notifications.json");
 
