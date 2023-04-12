@@ -4,8 +4,15 @@ const express = require("express");
 const cron = require("node-cron");
 const axios = require("axios");
 const app = express();
-const fs = require("fs");
 require("dotenv").config();
+const { Storage } = require("@google-cloud/storage");
+
+const storage = new Storage({
+  projectId: process.env.GOOGLE_CLOUD_PROJECT_ID,
+  keyFilename: "./google-cloud-key.json",
+});
+const bucket = storage.bucket(process.env.GOOGLE_CLOUD_STORAGE_BUCKET);
+const notificationsFile = bucket.file("notifications.json");
 
 const LOCATION = "Chisinau,md";
 // Load the saved notifications
@@ -27,19 +34,19 @@ const commands = [
   { command: "/weather_tomorrow", description: "Get weather tomorrow" },
 ];
 
-function readNotifications() {
+async function readNotifications() {
   try {
-    const data = fs.readFileSync("notifications.json", "utf8");
-    return JSON.parse(data);
+    const data = await notificationsFile.download();
+    return JSON.parse(data.toString());
   } catch (error) {
     console.error("Error reading notifications file:", error);
     return {};
   }
 }
 
-function writeNotifications(notifications) {
+async function writeNotifications(notifications) {
   try {
-    fs.writeFileSync("notifications.json", JSON.stringify(notifications));
+    await notificationsFile.save(JSON.stringify(notifications));
   } catch (error) {
     console.error("Error writing notifications file:", error);
   }
@@ -72,19 +79,25 @@ bot
 bot.on("message", async (msg) => {
   const chatId = msg.chat.id;
   const weatherData = await getWeatherData();
+  const notifications = await readNotifications();
 
   switch (msg.text) {
     case "/start":
       bot.sendMessage(chatId, "Welcome to NotificationRainBot");
       break;
     case "/notify":
-      notificationsEnabled.add(chatId);
-      writeNotifications({ enabledChatIds: Array.from(notificationsEnabled) });
+      notifications.enabledChatIds = notifications.enabledChatIds || [];
+      notifications.enabledChatIds.push(chatId);
+      await writeNotifications(notifications);
       bot.sendMessage(chatId, "Notifications enabled.");
       break;
     case "/notify_off":
-      notificationsEnabled.delete(chatId);
-      writeNotifications({ enabledChatIds: Array.from(notificationsEnabled) });
+      notifications.enabledChatIds = notifications.enabledChatIds || [];
+      const index = notifications.enabledChatIds.indexOf(chatId);
+      if (index > -1) {
+        notifications.enabledChatIds.splice(index, 1);
+      }
+      await writeNotifications(notifications);
       bot.sendMessage(chatId, "Notifications disabled.");
       break;
     case "/weather":
