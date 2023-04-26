@@ -20,7 +20,7 @@ app.get("/", (req, res) => {
   res.send("Bot is running!");
 });
 
-const listener = app.listen(process.env.PORT || 3000, () => {
+const listener = app.listen(8080, () => {
   console.log("Your app is listening on port " + listener.address().port);
 });
 
@@ -67,6 +67,10 @@ function checkRainAt(hour) {
 
 const bot = new TelegramBot(process.env.TELEGRAM_API_KEY, { polling: true });
 
+bot.on("polling_error", (error) => {
+  console.log("Polling error:", error.code, error.message);
+});
+
 // Set the bot's commands
 bot
   .setMyCommands(commands)
@@ -78,6 +82,8 @@ bot.on("message", async (msg) => {
   const chatId = msg.chat.id;
   const weatherData = await getWeatherData();
   const notifications = await readNotifications();
+  const notificationsEnabled = new Set(notifications.enabledChatIds || []);
+
   switch (msg.text) {
     case "/start":
       bot.sendMessage(chatId, "Welcome to NotificationRainBot");
@@ -87,6 +93,7 @@ bot.on("message", async (msg) => {
       notifications.enabledChatIds = notifications.enabledChatIds || [];
       notifications.enabledChatIds.push(chatId);
       await writeNotifications(notifications);
+      notificationsEnabled.add(chatId); // Update the Set
       bot.sendMessage(chatId, "Notifications enabled.");
       break;
     case "/notify_off":
@@ -96,8 +103,10 @@ bot.on("message", async (msg) => {
         (id) => id !== chatId
       );
       await writeNotifications(notifications);
+      notificationsEnabled.delete(chatId); // Update the Set
       bot.sendMessage(chatId, "Notifications disabled.");
       break;
+
     case "/weather":
       const currentWeather = weatherData.list[0];
       const temperature = Math.round(currentWeather.main.temp - 273.15); // Convert Kelvin to Celsius
@@ -155,6 +164,22 @@ cron.schedule(
           `It will rain tomorrow with an intensity of ${rainIntensity} mm.`
         );
       }
+    }
+  },
+  { timezone: "Europe/Chisinau" }
+);
+
+cron.schedule(
+  "16 21 * * *",
+  async () => {
+    const weatherData = await getWeatherData();
+    const currentWeather = weatherData.list[0];
+    const temperature = Math.round(currentWeather.main.temp - 273.15); // Convert Kelvin to Celsius
+    const description = currentWeather.weather[0].description;
+    const message = `Good morning! The current temperature is ${temperature}°C and the weather is ${description}.`;
+
+    for (const chatId of notificationsEnabled) {
+      bot.sendMessage(chatId, message);
     }
   },
   { timezone: "Europe/Chisinau" }
