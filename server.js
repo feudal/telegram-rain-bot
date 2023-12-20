@@ -131,56 +131,59 @@ bot.on("message", async (msg) => {
 });
 
 // Send notifications
-schedule.scheduleJob(
-  "0 8 * * *",
-  async () => {
-    const weatherData = await getWeatherData();
-    const rainAt6PM = checkRainAt(18)(weatherData);
-    if (rainAt6PM) {
-      for (const chatId of notificationsEnabled) {
-        bot.sendMessage(
-          chatId,
-          "It will rain at 6 PM. Don't forget to take an umbrella!"
-        );
-      }
-    }
-  },
-  { timezone: "Europe/Chisinau" }
-);
+const rule1 = new schedule.RecurrenceRule();
+rule1.hour = 8;
+rule1.minute = 0;
+rule1.tz = "Europe/Chisinau";
 
-schedule.scheduleJob(
-  "0 12 * * *",
-  async () => {
-    const weatherData = await getWeatherData();
-    const tomorrowRain = checkRainAt(
-      moment().tz("Europe/Chisinau").hour() + 24
-    )(weatherData);
-    if (tomorrowRain) {
-      console.log("Sending tomorrow rain notification");
-      const rainIntensity = tomorrowRain.rain["3h"];
-      for (const chatId of notificationsEnabled) {
-        bot.sendMessage(
-          chatId,
-          `It will rain tomorrow with an intensity of ${rainIntensity} mm.`
-        );
-      }
-    }
-  },
-  { timezone: "Europe/Chisinau" }
-);
-
-schedule.scheduleJob(
-  "16 21 * * *",
-  async () => {
-    const weatherData = await getWeatherData();
-    const currentWeather = weatherData.list[0];
-    const temperature = Math.round(currentWeather.main.temp - 273.15); // Convert Kelvin to Celsius
-    const description = currentWeather.weather[0].description;
-    const message = `Good morning! The current temperature is ${temperature}°C and the weather is ${description}.`;
-
+schedule.scheduleJob(rule1, () => {
+  const weatherData = getWeatherData();
+  const rainAt6PM = checkRainAt(18)(weatherData);
+  if (rainAt6PM) {
     for (const chatId of notificationsEnabled) {
-      bot.sendMessage(chatId, message);
+      bot.sendMessage(
+        chatId,
+        "It will rain at 6 PM. Don't forget to take an umbrella!"
+      );
     }
-  },
-  { timezone: "Europe/Chisinau" }
-);
+  }
+});
+
+const rule2 = new schedule.RecurrenceRule();
+rule2.hour = 20;
+rule2.minute = 0;
+rule2.tz = "Europe/Chisinau";
+
+schedule.scheduleJob(rule2, async () => {
+  const weatherData = await getWeatherData();
+  const tomorrowRain = checkRainAt(moment().tz("Europe/Chisinau").hour() + 24)(
+    weatherData
+  );
+  if (tomorrowRain) {
+    console.log("Sending tomorrow rain notification");
+    const rainIntensity = tomorrowRain.rain["3h"];
+    for (const chatId of notificationsEnabled) {
+      bot.sendMessage(
+        chatId,
+        `It will rain tomorrow with an intensity of ${rainIntensity} mm.`
+      );
+    }
+  }
+});
+
+const rule3 = new schedule.RecurrenceRule();
+rule3.hour = 7;
+rule3.minute = 30;
+rule3.tz = "Europe/Chisinau";
+
+schedule.scheduleJob(rule3, async () => {
+  const weatherData = await getWeatherData();
+  const currentWeather = weatherData.list[0];
+  const temperature = Math.round(currentWeather.main.temp - 273.15); // Convert Kelvin to Celsius
+  const description = currentWeather.weather[0].description;
+  const message = `Good morning! The current temperature is ${temperature}°C and the weather is ${description}.`;
+
+  for (const chatId of notificationsEnabled) {
+    bot.sendMessage(chatId, message);
+  }
+});
