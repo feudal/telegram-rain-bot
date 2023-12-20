@@ -3,14 +3,10 @@ const moment = require("moment-timezone");
 const express = require("express");
 const cron = require("node-cron");
 const axios = require("axios");
+const fs = require("fs");
+
 const app = express();
 require("dotenv").config();
-const { Storage } = require("@google-cloud/storage");
-
-const storage = new Storage();
-
-const bucket = storage.bucket(process.env.GOOGLE_CLOUD_STORAGE_BUCKET);
-const notificationsFile = bucket.file("notifications.json");
 
 const LOCATION = "Chisinau,md";
 // Load the saved notifications
@@ -32,9 +28,9 @@ const commands = [
   { command: "/weather_tomorrow", description: "Get weather tomorrow" },
 ];
 
-async function readNotifications() {
+function readNotifications() {
   try {
-    const data = await notificationsFile.download();
+    const data = fs.readFileSync("notifications.json");
     return JSON.parse(data.toString());
   } catch (error) {
     console.error("Error reading notifications file:", error);
@@ -42,9 +38,9 @@ async function readNotifications() {
   }
 }
 
-async function writeNotifications(notifications) {
+function writeNotifications(notifications) {
   try {
-    await notificationsFile.save(JSON.stringify(notifications));
+    fs.writeFileSync("notifications.json", JSON.stringify(notifications));
   } catch (error) {
     console.error("Error writing notifications file:", error);
   }
@@ -89,7 +85,6 @@ bot.on("message", async (msg) => {
       bot.sendMessage(chatId, "Welcome to NotificationRainBot");
       break;
     case "/notify":
-      bot.sendMessage(chatId, "Enabling notifications...");
       notifications.enabledChatIds = notifications.enabledChatIds || [];
       notifications.enabledChatIds.push(chatId);
       await writeNotifications(notifications);
@@ -97,7 +92,6 @@ bot.on("message", async (msg) => {
       bot.sendMessage(chatId, "Notifications enabled.");
       break;
     case "/notify_off":
-      bot.sendMessage(chatId, "Disabling notifications...");
       notifications.enabledChatIds = notifications.enabledChatIds || [];
       notifications.enabledChatIds = notifications.enabledChatIds.filter(
         (id) => id !== chatId
