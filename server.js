@@ -43,13 +43,19 @@ function writeNotifications(notifications) {
     fs.writeFileSync("notifications.json", JSON.stringify(notifications));
   } catch (error) {
     console.error("Error writing notifications file:", error);
+    throw error; // Rethrow the error to propagate it
   }
 }
 
 async function getWeatherData() {
-  const url = `https://api.openweathermap.org/data/2.5/forecast?q=${LOCATION}&appid=${process.env.OPENWEATHERMAP_API_KEY}`;
-  const response = await axios.get(url);
-  return response.data;
+  try {
+    const url = `https://api.openweathermap.org/data/2.5/forecast?q=${LOCATION}&appid=${process.env.OPENWEATHERMAP_API_KEY}`;
+    const response = await axios.get(url);
+    return response.data;
+  } catch (error) {
+    console.error("Error fetching weather data:", error);
+    throw error; // Rethrow the error to propagate it
+  }
 }
 
 function checkRainAt(hour) {
