@@ -1,7 +1,7 @@
 const TelegramBot = require("node-telegram-bot-api");
 const moment = require("moment-timezone");
 const express = require("express");
-const cron = require("node-cron");
+const schedule = require("node-schedule");
 const axios = require("axios");
 const fs = require("fs");
 
@@ -131,7 +131,7 @@ bot.on("message", async (msg) => {
 });
 
 // Send notifications
-cron.schedule(
+schedule.scheduleJob(
   "0 8 * * *",
   async () => {
     const weatherData = await getWeatherData();
@@ -148,7 +148,7 @@ cron.schedule(
   { timezone: "Europe/Chisinau" }
 );
 
-cron.schedule(
+schedule.scheduleJob(
   "0 12 * * *",
   async () => {
     const weatherData = await getWeatherData();
@@ -169,7 +169,7 @@ cron.schedule(
   { timezone: "Europe/Chisinau" }
 );
 
-cron.schedule(
+schedule.scheduleJob(
   "16 21 * * *",
   async () => {
     const weatherData = await getWeatherData();
