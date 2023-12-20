@@ -1,4 +1,4 @@
 .env
 clinic
 node_modules
-notification.json
+notifications.json
