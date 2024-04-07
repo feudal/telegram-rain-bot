@@ -8,7 +8,7 @@ const fs = require("fs");
 const app = express();
 require("dotenv").config();
 
-const LOCATION = "London";
+const LOCATION = "Dagenham,uk";
 // Load the saved notifications
 const notificationsEnabled = new Set(readNotifications().enabledChatIds || []);
 
