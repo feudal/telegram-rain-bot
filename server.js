@@ -8,7 +8,7 @@ const fs = require("fs");
 const app = express();
 require("dotenv").config();
 
-const LOCATION = "Chisinau,md";
+const LOCATION = "London";
 // Load the saved notifications
 const notificationsEnabled = new Set(readNotifications().enabledChatIds || []);
 
@@ -50,6 +50,7 @@ function writeNotifications(notifications) {
 async function getWeatherData() {
   try {
     const url = `https://api.openweathermap.org/data/2.5/forecast?q=${LOCATION}&appid=${process.env.OPENWEATHERMAP_API_KEY}`;
+
     const response = await axios.get(url);
     return response.data;
   } catch (error) {
